@@ -1,0 +1,126 @@
+#!/usr/bin/env ruby
+# encoding: UTF-8
+require 'slack'
+require 'pp'
+
+Slack.configure do |config|
+	config.token = "#{SLACK_TOKEN_GOES_HERE}}"
+end
+
+c = Slack::Client.new
+t = Time.now.hour
+
+pizza_days = [ "2016-04-20", "2016-05-11", "2016-06-08",
+               "2016-07-18", "2016-08-12", "2016-09-14",
+               "2016-10-07", "2016-11-08", "2016-12-07" ]
+
+#pizza_day = Time.now.day <= 7 && Time.now.friday?
+pizza_day = pizza_days.index(Time.new.to_s.split(" ")[0])
+
+channel = 'C04UE6S5W' # '#lunch'
+# channel = 'D08S32JCB' # @michalz
+message = nil
+
+if (t >= 14)
+	message = "Svačinku nebo pivínko? :beers:"
+
+elsif (t >= 11)
+	sleep(rand() * 2384 % 7 * 60)
+
+	if (pizza_day) then
+		sleep_time = 60-Time.now.min
+		sleep_time = 0 if t >= 12
+		sleep(sleep_time)
+	end
+
+	h = c.channels_history({ :channel => channel })
+	last = h["messages"][0]
+
+	if last != nil
+		ts = last['ts'].to_i
+		ts = Time.at(ts)
+		exit 0 if ts.hour >= 11 && ts.min >= 25
+	end
+
+	message = [ "Jdem! :poultry_leg:",
+	            "Bon apetit! :spaghetti:",
+	            "Jde se jíst! :oden:",
+	            "Do zbraně! :fork_and_knife:",
+	            "Tak, dnešní gurmánská nálož čeká! :flick: :excellent:",
+	          ].sample
+
+	message = ":pizza: :pizza: !PIZZA TIME! :pizza: :pizza:" if pizza_day
+
+elsif (t == 10 && Time.now.min >= 30)
+	now = Time.now
+	midnight = now - (now.hour*60*60 + now.min*60 + now.sec)
+	h = c.channels_history({ :channel => channel, :inclusive => 1, :oldest => midnight.to_i, :count => 1000 })
+	h = h["messages"]
+
+	people_orders = { }
+	orders = { }
+
+	h.reverse.each{|m|
+		text = m["text"]
+		user = m["user"]
+		next if text == nil || user == nil
+		number = text.to_i
+		next if number == 0 && number.to_s != text[0]
+		next if number < 0 || number > 5
+		people_orders[user] = number
+	}
+
+	people_orders.each{|k,v|
+		next if v == 0
+		val = orders[v.to_s]
+		val = 0 if val == nil
+		val += 1
+		orders[v.to_s] = val
+	}
+
+	message = [ "Jde se objednávat! :fork_and_knife: :thumbsup:",
+	            "Tak co to bude dneska? :fries: :cocktail:",
+	          ].sample
+	message = [ "Dneska nic? :pensive:",
+		        "Dneska jsem tu zbytečně, můj život nemá smysl :disappointed:",
+		      ].sample if orders.count == 0
+
+	if (orders.count)
+		message += "\n"
+		orders.keys.sort.each{|k|
+			message += "\n" + k + ": " + orders[k].to_s + "\u00D7"
+		}
+	end
+
+	message = "Dneska bude pizza! :pizza:" if pizza_day
+
+elsif (t >= 8)
+	exit 0 if pizza_day
+	h = c.channels_history({ :channel => channel })
+	last = h["messages"][0]
+
+	if last != nil
+		ts = last['ts'].to_i
+		ts = Time.at(ts)
+		now = Time.now
+		midnight = now - (now.hour*60*60 + now.min*60 + now.sec)
+		# exit 0 if ts > midnight
+		message = [ "Nojo, dneska má někdo fakt hlad! :dango:",
+		            "Bože, zase nedočkavci? :ramen:",
+		            "Prr prrrrr, ještě si to rozmyslíte a co já s tím pak? :facepalm:",
+		            "Cože co? Říkal někdo „špecle“? :troll:",
+		            "Dneska bude hostinaaaa! :taco: :beer:",
+		            "Nojo, není nad UHO a kaťáky! :stew:",
+		          ].sample if ts > midnight
+	end
+
+	message = [ "It's time to choose! :hamburger:",
+	            "Dámy, páni, čas vybírat! :stew:",
+	            "/votelunch :doughnut:",
+	          ].sample if message == nil
+end
+
+# Send message, if any
+if message != nil
+	c.chat_postMessage({ :channel => channel, :text => message, :as_user => true })
+end
