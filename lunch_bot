@@ -14,7 +14,7 @@ pizza_days = [ "2016-04-20", "2016-05-11", "2016-06-08",
                "2016-07-18", "2016-08-12", "2016-09-14",
                "2016-10-07", "2016-11-08", "2016-12-07" ]
 
-#pizza_day = Time.now.day <= 7 && Time.now.friday?
+# pizza_day = Time.now.day <= 7 && Time.now.friday?
 pizza_day = pizza_days.index(Time.new.to_s.split(" ")[0])
 
 channel = 'C04UE6S5W' # '#lunch'
@@ -55,27 +55,46 @@ elsif (t == 10 && Time.now.min >= 30)
 	now = Time.now
 	midnight = now - (now.hour*60*60 + now.min*60 + now.sec)
 	h = c.channels_history({ :channel => channel, :inclusive => 1, :oldest => midnight.to_i, :count => 1000 })
+	# h = c.im_history({ :channel => channel, :inclusive => 1, :oldest => midnight.to_i, :count => 1000 })
 	h = h["messages"]
 
 	people_orders = { }
 	orders = { }
 
+	allowed_prefixes = [ "LC", "M", "S", "DD" ]
+
 	h.reverse.each{|m|
 		text = m["text"]
 		user = m["user"]
 		next if text == nil || user == nil
-		number = text.to_i
-		next if number == 0 && number.to_s != text[0]
-		next if number < 0 || number > 5
-		people_orders[user] = number
+		text.strip!
+		text = text.split(" ")[0]
+
+		selections = text.split "+"
+		selections.map! {|c|
+			elm = nil
+			if (c =~ /^(LC|M|S|DD)[0-9]/)
+				elm = c.gsub /[^LCMSD0-9]/, ''
+				num = elm.gsub /[^0-9]/, ''
+				num = num.to_i
+				elm = nil if num == 0 || num > 9
+			end
+			elm
+		}
+		selections.select! {|s| s != nil }
+		people_orders[user] = selections if selections.count > 0
+
+		# puts "#{user}: #{text} => #{selections}"
 	}
 
 	people_orders.each{|k,v|
-		next if v == 0
-		val = orders[v.to_s]
-		val = 0 if val == nil
-		val += 1
-		orders[v.to_s] = val
+		next if !v || !(v.is_a? Array) || v.count == 0
+		v.each{|item|
+			val = orders[item]
+			val = 0 if val == nil
+			val += 1
+			orders[item] = val
+		}
 	}
 
 	message = [ "Jde se objednávat! :fork_and_knife: :thumbsup:",
@@ -123,4 +142,5 @@ end
 # Send message, if any
 if message != nil
 	c.chat_postMessage({ :channel => channel, :text => message, :as_user => true })
+	# puts message
 end
