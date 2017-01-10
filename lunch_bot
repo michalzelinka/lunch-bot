@@ -4,7 +4,7 @@ require 'slack'
 require 'pp'
 
 Slack.configure do |config|
-	config.token = "#{SLACK_TOKEN_GOES_HERE}}"
+	config.token = "#{SLACK_TOKEN_GOES_HERE}"
 end
 
 c = Slack::Client.new
@@ -73,11 +73,10 @@ elsif (t == 10 && Time.now.min >= 30)
 		selections = text.split "+"
 		selections.map! {|c|
 			elm = nil
-			if (c =~ /^(LC|M|S|DD)[0-9]/)
-				elm = c.gsub /[^LCMSD0-9]/, ''
-				num = elm.gsub /[^0-9]/, ''
-				num = num.to_i
-				elm = nil if num == 0 || num > 9
+			if (c =~ /^(LC|M|S|DD)([0-9]{0,1}|x)/)
+				elm = c.match(/^[a-zA-Z]+/)[0].gsub /x/, ''
+				num = c.gsub(/^[a-zA-Z]+/, '').to_i
+				elm += num.to_s if num != 0
 			end
 			elm
 		}
