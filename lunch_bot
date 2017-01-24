@@ -12,7 +12,8 @@ t = Time.now.hour
 
 pizza_days = [ "2016-04-20", "2016-05-11", "2016-06-08",
                "2016-07-18", "2016-08-12", "2016-09-14",
-               "2016-10-07", "2016-11-08", "2016-12-07" ]
+               "2016-10-07", "2016-11-08", "2016-12-07",
+               "2017-01-16" ]
 
 # pizza_day = Time.now.day <= 7 && Time.now.friday?
 pizza_day = pizza_days.index(Time.new.to_s.split(" ")[0])
@@ -74,9 +75,11 @@ elsif (t == 10 && Time.now.min >= 30)
 		selections.map! {|c|
 			elm = nil
 			if (c =~ /^(LC|M|S|DD)([0-9]{0,1}|x)/)
-				elm = c.match(/^[a-zA-Z]+/)[0].gsub /x/, ''
+				elm = c.match(/^(LC|M|S|DD)/)[0]
 				num = c.gsub(/^[a-zA-Z]+/, '').to_i
+				# puts "#{c} => #{elm}"
 				elm += num.to_s if num != 0
+				# puts "#{c} => #{elm}"
 			end
 			elm
 		}
