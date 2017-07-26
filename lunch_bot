@@ -13,7 +13,9 @@ t = Time.now.hour
 pizza_days = [ "2016-04-20", "2016-05-11", "2016-06-08",
                "2016-07-18", "2016-08-12", "2016-09-14",
                "2016-10-07", "2016-11-08", "2016-12-07",
-               "2017-01-16" ]
+               "2017-01-16", "2017-02-20", "2017-03-17",
+               "2017-04-19", "2017-05-26", "2017-06-28",
+               "2017-07-28" ]
 
 # pizza_day = Time.now.day <= 7 && Time.now.friday?
 pizza_day = pizza_days.index(Time.new.to_s.split(" ")[0])
@@ -62,7 +64,20 @@ elsif (t == 10 && Time.now.min >= 30)
 	people_orders = { }
 	orders = { }
 
-	allowed_prefixes = [ "LC", "M", "S", "DD" ]
+	lunch_points = {
+		"Kočka" => ["ZK","KOCKA"],
+		"Plzeň" => ["PD","PLZEN"],
+		"Sono" => ["SONO"],
+		"Helan" => ["HELAN","H"],
+		"Bistro" => ["B","BISTRO"],
+		"Lokofu" => ["L","LOK","LOKOFU"],
+		"Doširak" => ["DOSIRAK"],
+		"Pho Viet" => ["PHO","PHOVIET"],
+		"Šelepka" => ["S","SELEPKA"],
+	}
+
+	lunch_prefixes = lunch_points.map {|k,v| v }.flatten
+	lunch_prefixes = lunch_prefixes.join '|'
 
 	h.reverse.each{|m|
 		text = m["text"]
@@ -74,11 +89,11 @@ elsif (t == 10 && Time.now.min >= 30)
 		selections = text.split "+"
 		selections.map! {|c|
 			elm = nil
-			if (c =~ /^(LC|M|S|DD)([0-9]{0,1}|x)/)
-				elm = c.match(/^(LC|M|S|DD)/)[0]
+			if (c =~ Regexp.new('^('+ lunch_prefixes +')([0-9]{0,1}|x)'))
+				elm = c.match(Regexp.new('^('+ lunch_prefixes +')'))[0]
 				num = c.gsub(/^[a-zA-Z]+/, '').to_i
 				# puts "#{c} => #{elm}"
-				elm += num.to_s if num != 0
+				# elm += num.to_s if num != 0
 				# puts "#{c} => #{elm}"
 			end
 			elm
@@ -87,6 +102,13 @@ elsif (t == 10 && Time.now.min >= 30)
 		people_orders[user] = selections if selections.count > 0
 
 		# puts "#{user}: #{text} => #{selections}"
+	}
+
+	people_orders.each{|k,v|
+		next if v.count == 0
+		lunch_points.each{|l,w|
+			people_orders[k] = [l] if w.include?(v[0])
+		}
 	}
 
 	people_orders.each{|k,v|
@@ -99,11 +121,11 @@ elsif (t == 10 && Time.now.min >= 30)
 		}
 	}
 
-	message = [ "Jde se objednávat! :fork_and_knife: :thumbsup:",
-	            "Tak co to bude dneska? :fries: :cocktail:",
+	message = [ "Tož kam dnes? :whatsgoinon: :taco:",
+	            "Tak kam se jde dneska? :fries: :cocktail:",
 	          ].sample
-	message = [ "Dneska nic? :pensive:",
-		        "Dneska jsem tu zbytečně, můj život nemá smysl :disappointed:",
+	message = [ "Dneska nic? :scream: :derp_happy:",
+		        "Nikto nie je hladny? :pokerface: :boredparrot:",
 		      ].sample if orders.count == 0
 
 	if (orders.count)
